@@ -34,4 +34,4 @@ jobs:
     # Push Docker Image to GCR
     - name: Push Docker Image
       run: |
-        docker push gcr.io/codimite-assignment-444413e/my-flask-app:latest
+        docker push gcr.io/codimite-assignment-444413/my-flask-app:latest
