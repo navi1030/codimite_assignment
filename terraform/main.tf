@@ -1,6 +1,7 @@
 provider "google" {
   project = var.gcp_project_id
   region  = var.region
+  credentials = secrets.GCP_SERVICE_ACCOUNT_KEY
 }
 
 resource "google_compute_network" "vpc" {

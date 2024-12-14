@@ -26,10 +26,9 @@ jobs:
         run: terraform validate
 
       - name: Terraform Plan
-        run: terraform plan -var="gcp_project_id=codimite-assignment-444413"
+        run: terraform plan 
 
 
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main'
-        run: terraform apply -auto-approve -var="gcp_project_id=codimite-assignment-444413"
-
+        run: terraform apply

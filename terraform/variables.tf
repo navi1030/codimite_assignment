@@ -1,6 +1,7 @@
 variable "gcp_project_id" {
   description = "The GCP project ID where resources will be created"
   type        = string
+  default     = "codimite-assignment-444413"
 }
 
 variable "region" {
@@ -40,13 +41,13 @@ variable "node_pools" {
     {
       name          = "default-pool"
       machine_type  = "e2-medium"
-      disk_size_gb  = 50
+      disk_size_gb  = 16
       initial_count = 2
     },
     {
       name          = "custom-pool"
       machine_type  = "n2-standard-2"
-      disk_size_gb  = 100
+      disk_size_gb  = 16
       initial_count = 3
     }
   ]
