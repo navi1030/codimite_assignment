@@ -1,0 +1,85 @@
+---
+    name: Build and Push Python Image to Google Cloud Platform
+    on:
+      push:
+        branches: [ main ]
+  
+    env:
+      REGION: us-central1
+      PROJECT: codimite-assignment-444413
+      REPO: quickstart-docker-repo
+      IMAGE: my-flask-app
+    jobs:
+      build-push:
+        name: Build and Push to GCP
+        runs-on: ubuntu-latest
+        
+        steps:
+        - name: Checkout
+          uses: actions/checkout@v4
+  
+        - name: set vars
+          run: echo "IMAGE_TAG=$REGION-docker.pkg.dev/$PROJECT/$REPO/$IMAGE:$(date +%Y%m%d%H%M%S)" >> $GITHUB_ENV
+
+          
+        - uses: google-github-actions/auth@v1
+          with:
+            credentials_json: "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}"
+            
+  
+        - name: setup google sdk
+          uses: google-github-actions/setup-gcloud@v1
+               
+  
+        - name: Configure Docker Client
+          run: gcloud auth configure-docker ${{ env.REGION}}-docker.pkg.dev --quiet
+  
+  
+        - name: Build Docker Image
+          uses: docker/build-push-action@v5
+          with:
+            context: .
+            push: false
+            tags: ${{ env.IMAGE_TAG }}
+  
+         #  Scan Docker Image with Trivy
+        - name: Scan Docker Image for Vulnerabilities
+          uses: aquasecurity/trivy-action@master
+          with:
+            image-ref: ${{ env.IMAGE_TAG }}
+            severity: HIGH,CRITICAL
+            ignore-unfixed: true
+  
+        - name: Build Docker Image
+          uses: docker/build-push-action@v5
+          with:
+              context: ./microservice
+              push: true
+              tags: ${{ env.IMAGE_TAG }}
+  
+     #  Deploy Kubernetes Manifests via ArgoCD
+        - name: Install ArgoCD CLI
+          run: curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64 && chmod +x /usr/local/bin/argocd
+  
+        - name: Login to ArgoCD
+          run: |
+            argocd login ${{ secrets.ARGOCD_SERVER_URL }} \
+              --username ${{ secrets.ARGOCD_USERNAME }} \
+              --password ${{ secrets.ARGOCD_PASSWORD }} \
+              --insecure
+  
+        - name: Register Cluster with ArgoCD
+          run: |
+            kubectl config set-context gke_context --cluster=gke_codimite-assignment-444413_us-central1-a_my-cluster --namespace=default
+            argocd cluster add gke_context
+  
+        - name: Deploy to GKE via ArgoCD
+          run: |
+            argocd app create my-flask-app \
+              --repo https://github.com/navi1030/codimite_assignmen \
+              --path k8s/manifests \
+              --dest-server https://kubernetes.default.svc \
+              --dest-namespace default || \
+            argocd app sync my-flask-app
+      
+           
